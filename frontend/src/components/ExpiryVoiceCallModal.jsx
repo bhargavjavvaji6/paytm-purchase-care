@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import axios from 'axios';
-import { API_BASE } from '../config';
+import { DataService } from '../services/dataService';
 import {
   PhoneCall,
   Volume2,
@@ -94,24 +93,24 @@ export default function ExpiryVoiceCallModal({
       stopVoice();
 
       try {
-        const res = await axios.post(`${API_BASE}/api/voice-agent/expiry-alert`, {
+        const resData = await DataService.triggerExpiryVoiceAlert({
           product_name: device.product_name,
           target_language: langCode,
           category: device.category || 'laptops',
           days_left: device.days_remaining || 6
         });
 
-        setSpeechText(res.data.speech_text);
+        setSpeechText(resData.speech_text);
 
-        if (res.data.audio_base64) {
+        if (resData.audio_base64) {
           try {
-            const audio = new Audio(`data:audio/wav;base64,${res.data.audio_base64}`);
+            const audio = new Audio(`data:audio/wav;base64,${resData.audio_base64}`);
             audioRef.current = audio;
             setIsPlaying(true);
             audio.play();
             audio.onended = () => setIsPlaying(false);
             audio.onerror = () => {
-              speakWithBrowserFallback(res.data.speech_text, langCode);
+              speakWithBrowserFallback(resData.speech_text, langCode);
             };
             return;
           } catch (e) {
@@ -120,7 +119,7 @@ export default function ExpiryVoiceCallModal({
         }
 
         // Web Speech synthesis fallback
-        speakWithBrowserFallback(res.data.speech_text, langCode);
+        speakWithBrowserFallback(resData.speech_text, langCode);
       } catch (err) {
         console.error('Error generating voice alert:', err);
         // High-fidelity vernacular fallbacks across all 7 languages

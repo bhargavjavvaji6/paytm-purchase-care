@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
-import { API_BASE } from '../config';
+import { DataService } from '../services/dataService';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -77,7 +76,7 @@ export default function PurchaseDashboard({
     setIsDeleting(true);
 
     try {
-      await axios.delete(`${API_BASE}/api/purchases/${itemToDelete.id}`);
+      await DataService.deletePurchase(itemToDelete.id);
       setToastMessage(`"${itemToDelete.product_name}" removed from Paytm Care Hub.`);
       if (onDeleteDevice) {
         onDeleteDevice(itemToDelete.id);
@@ -85,7 +84,6 @@ export default function PurchaseDashboard({
       setTimeout(() => setToastMessage(null), 3500);
     } catch (err) {
       console.error('Failed to delete product:', err);
-      // Still notify parent
       if (onDeleteDevice) {
         onDeleteDevice(itemToDelete.id);
       }

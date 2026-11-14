@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import {
   ShieldCheck,
   UploadCloud,
@@ -25,7 +24,7 @@ import StrategicOverviewModal from './components/StrategicOverviewModal';
 import PaymentSimulatorModal from './components/PaymentSimulatorModal';
 import ExpiryVoiceCallModal from './components/ExpiryVoiceCallModal';
 
-import { API_BASE } from './config';
+import { DataService } from './services/dataService';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -52,24 +51,21 @@ function App() {
 
   const fetchAllData = useCallback(async () => {
     try {
-      const [purchasesRes, statsRes, centersRes, bookingsRes, recallsRes, notifsRes] =
-        await Promise.all([
-          axios.get(`${API_BASE}/api/purchases`),
-          axios.get(`${API_BASE}/api/dashboard/stats`),
-          axios.get(`${API_BASE}/api/service-centers`),
-          axios.get(`${API_BASE}/api/service-bookings`),
-          axios.get(`${API_BASE}/api/recalls`),
-          axios.get(`${API_BASE}/api/notifications`)
-        ]);
+      const pData = await DataService.getPurchases();
+      const sData = await DataService.getStats(pData);
+      const cData = await DataService.getServiceCenters();
+      const bData = await DataService.getServiceBookings();
+      const rData = await DataService.getRecalls();
+      const nData = await DataService.getNotifications();
 
-      setPurchases(purchasesRes.data);
-      setStats(statsRes.data);
-      setServiceCenters(centersRes.data);
-      setBookings(bookingsRes.data);
-      setRecalls(recallsRes.data);
-      setNotifications(notifsRes.data);
+      setPurchases(pData);
+      setStats(sData);
+      setServiceCenters(cData);
+      setBookings(bData);
+      setRecalls(rData);
+      setNotifications(nData);
     } catch (err) {
-      console.error('Failed to load data from API:', err);
+      console.error('Failed to load data:', err);
     }
   }, []);
 
@@ -77,26 +73,23 @@ function App() {
     let ignore = false;
     const loadInitialData = async () => {
       try {
-        const [purchasesRes, statsRes, centersRes, bookingsRes, recallsRes, notifsRes] =
-          await Promise.all([
-            axios.get(`${API_BASE}/api/purchases`),
-            axios.get(`${API_BASE}/api/dashboard/stats`),
-            axios.get(`${API_BASE}/api/service-centers`),
-            axios.get(`${API_BASE}/api/service-bookings`),
-            axios.get(`${API_BASE}/api/recalls`),
-            axios.get(`${API_BASE}/api/notifications`)
-          ]);
+        const pData = await DataService.getPurchases();
+        const sData = await DataService.getStats(pData);
+        const cData = await DataService.getServiceCenters();
+        const bData = await DataService.getServiceBookings();
+        const rData = await DataService.getRecalls();
+        const nData = await DataService.getNotifications();
 
         if (!ignore) {
-          setPurchases(purchasesRes.data);
-          setStats(statsRes.data);
-          setServiceCenters(centersRes.data);
-          setBookings(bookingsRes.data);
-          setRecalls(recallsRes.data);
-          setNotifications(notifsRes.data);
+          setPurchases(pData);
+          setStats(sData);
+          setServiceCenters(cData);
+          setBookings(bData);
+          setRecalls(rData);
+          setNotifications(nData);
         }
       } catch (err) {
-        console.error('Failed to load data from API:', err);
+        console.error('Failed to load data:', err);
       }
     };
 

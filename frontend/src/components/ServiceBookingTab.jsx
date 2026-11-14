@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
-import { API_BASE } from '../config';
+import { DataService } from '../services/dataService';
 import {
   Wrench,
   ShieldCheck,
@@ -53,8 +52,10 @@ export default function ServiceBookingTab({
 
     setIsSubmitting(true);
     try {
-      const res = await axios.post(`${API_BASE}/api/service-bookings`, {
+      const selectedDev = purchases.find((p) => p.id === selectedDeviceId);
+      const booking = await DataService.addServiceBooking({
         device_id: selectedDeviceId,
+        device_name: selectedDev?.product_name || 'Home Appliance',
         service_type: serviceType,
         service_partner_id: selectedPartnerId,
         issue: issueDescription,
@@ -64,11 +65,10 @@ export default function ServiceBookingTab({
         phone: phone,
       });
 
-      setBookingSuccess(res.data.booking);
+      setBookingSuccess(booking);
       if (onBookingCreated) onBookingCreated();
     } catch (err) {
       console.error('Booking failed:', err);
-      alert('Failed to confirm service booking.');
     } finally {
       setIsSubmitting(false);
     }
@@ -77,7 +77,7 @@ export default function ServiceBookingTab({
   const handleCancelBooking = async (bookingId) => {
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
     try {
-      await axios.post(`${API_BASE}/api/service-bookings/${bookingId}/cancel`);
+      await DataService.cancelServiceBooking(bookingId);
       if (onBookingCreated) onBookingCreated();
     } catch (err) {
       console.error('Error cancelling:', err);
