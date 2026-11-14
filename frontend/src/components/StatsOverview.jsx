@@ -1,11 +1,10 @@
-import React from 'react';
 import { ShieldCheck, AlertCircle, TrendingUp, Wrench, Layers } from 'lucide-react';
 
 export default function StatsOverview({ stats, onSelectFilter }) {
   if (!stats) return null;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 sm:gap-3 mb-6">
       {/* 1. Total Assets */}
       <div 
         onClick={() => onSelectFilter && onSelectFilter('All')}

@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ShieldCheck,
-  ShieldAlert,
   AlertTriangle,
   Clock,
   FileText,
   Wrench,
   TrendingUp,
   Search,
-  ExternalLink,
-  ChevronRight,
   PlusCircle,
   Sparkles,
   Smartphone,
@@ -25,7 +22,6 @@ import {
 
 export default function PurchaseDashboard({
   purchases = [],
-  onSelectDevice,
   onBookService,
   onOpenLedger,
   onExtendWarranty,
@@ -65,9 +61,6 @@ export default function PurchaseDashboard({
   // Find expiring items
   const expiringLaptop = purchases.find(
     (p) => (p.category === 'Laptops & PCs' || p.product_name.toLowerCase().includes('laptop')) && p.warranty_status === 'Expiring Soon'
-  );
-  const expiringAppliance = purchases.find(
-    (p) => (p.category === 'Home Appliances' || p.category === 'Smartphones') && p.warranty_status === 'Expiring Soon'
   );
 
   return (

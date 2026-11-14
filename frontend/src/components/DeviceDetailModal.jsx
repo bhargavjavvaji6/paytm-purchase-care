@@ -1,35 +1,27 @@
-import React from 'react';
 import {
   X,
   FileText,
   ShieldCheck,
-  CheckCircle,
-  Download,
-  Calendar,
-  DollarSign,
-  Tag,
-  Hash,
-  MapPin,
-  Building
+  Download
 } from 'lucide-react';
 
 export default function DeviceDetailModal({ device, isOpen, onClose }) {
   if (!isOpen || !device) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] shadow-2xl flex flex-col overflow-hidden border border-gray-100">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92dvh] shadow-2xl flex flex-col overflow-hidden border border-gray-100">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#002970] to-[#0a358c] text-white p-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-white/10 text-[#00b9f5]">
-              <FileText size={22} />
+        <div className="bg-gradient-to-r from-[#002970] to-[#0a358c] text-white p-3.5 sm:p-5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-white/10 text-[#00b9f5] shrink-0">
+              <FileText size={20} />
             </div>
             <div>
               <span className="text-[10px] font-bold text-[#00b9f5] uppercase tracking-wider block">
                 Digital Invoice Vault
               </span>
-              <h3 className="font-black text-base">{device.product_name}</h3>
+              <h3 className="font-black text-sm sm:text-base line-clamp-1">{device.product_name}</h3>
             </div>
           </div>
 
@@ -42,7 +34,7 @@ export default function DeviceDetailModal({ device, isOpen, onClose }) {
         </div>
 
         {/* Modal Body: Scanned Tax Invoice & Certificate */}
-        <div className="p-6 overflow-y-auto space-y-6">
+        <div className="p-3.5 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6">
           {/* Authentic Tax Invoice Replica */}
           <div className="bg-amber-50/20 border-2 border-dashed border-gray-300 rounded-2xl p-6 font-mono text-xs text-gray-800 space-y-4 shadow-inner">
             <div className="flex justify-between items-start border-b border-gray-300 pb-3">

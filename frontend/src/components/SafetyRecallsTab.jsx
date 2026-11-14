@@ -1,22 +1,16 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   AlertTriangle,
   ShieldAlert,
-  ShieldCheck,
   CheckCircle,
-  FileText,
-  Clock,
-  ExternalLink,
   ChevronRight,
-  Sparkles,
-  Zap
+  Sparkles
 } from 'lucide-react';
 
 export default function SafetyRecallsTab({
   recalls = [],
   purchases = [],
-  onExtendWarranty,
-  onBookService
+  onExtendWarranty
 }) {
   const [claimedRecalls, setClaimedRecalls] = useState({});
 

@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ShieldCheck,
   Mic,
   Bell,
-  User,
   Globe,
   ChevronDown,
   CheckCircle,
   AlertTriangle,
   Search,
   CreditCard,
-  PhoneCall,
-  Sparkles
+  PhoneCall
 } from 'lucide-react';
 
 export default function Navbar({

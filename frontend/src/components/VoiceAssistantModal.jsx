@@ -1,17 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config';
 import {
   Mic,
   MicOff,
   Volume2,
-  VolumeX,
   Send,
   X,
   Sparkles,
-  Globe,
-  Radio,
-  CheckCircle,
-  HelpCircle,
   ArrowRight
 } from 'lucide-react';
 
@@ -48,7 +44,102 @@ export default function VoiceAssistantModal({
     { label: 'Active Safety Recalls', query: 'Are there any active recalls on my devices?' }
   ];
 
-  // Initialize Web Speech Recognition if available
+  const fallbackSpeechSynthesis = useCallback((text) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = selectedLanguage;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      const matchVoice = voices.find((v) => v.lang.startsWith(selectedLanguage.split('-')[0]));
+      if (matchVoice) utterance.voice = matchVoice;
+
+      setIsPlayingAudio(true);
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => setIsPlayingAudio(false);
+      window.speechSynthesis.speak(utterance);
+    }
+  }, [selectedLanguage]);
+
+  const playSpeechAudio = useCallback((base64Audio, fallbackText) => {
+    if (base64Audio) {
+      try {
+        if (audioRef.current) {
+          audioRef.current.pause();
+        }
+        const audio = new Audio(`data:audio/wav;base64,${base64Audio}`);
+        audioRef.current = audio;
+        setIsPlayingAudio(true);
+        audio.play();
+        audio.onended = () => setIsPlayingAudio(false);
+        audio.onerror = () => {
+          fallbackSpeechSynthesis(fallbackText);
+        };
+        return;
+      } catch (e) {
+        console.warn('Sarvam audio playback error:', e);
+      }
+    }
+
+    fallbackSpeechSynthesis(fallbackText);
+  }, [fallbackSpeechSynthesis]);
+
+  const handleSendQuery = useCallback(async (queryText) => {
+    const textToSend = queryText || inputText;
+    if (!textToSend.trim()) return;
+
+    const userMsg = {
+      sender: 'user',
+      text: textToSend,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setConversation((prev) => [...prev, userMsg]);
+    setInputText('');
+    setIsProcessing(true);
+
+    try {
+      const res = await axios.post(`${API_BASE}/api/voice-agent`, {
+        text: textToSend,
+        target_language: selectedLanguage
+      });
+
+      const { reply_text, audio_base64, action_tab, target_device } = res.data;
+
+      const assistantMsg = {
+        sender: 'assistant',
+        text: reply_text,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        action_tab: action_tab,
+        target_device: target_device
+      };
+
+      setConversation((prev) => [...prev, assistantMsg]);
+      playSpeechAudio(audio_base64, reply_text);
+
+      if (action_tab && action_tab !== 'dashboard' && setActiveTab) {
+        if (target_device && onSelectPreselectedDevice) {
+          onSelectPreselectedDevice(target_device);
+        }
+      }
+    } catch (err) {
+      console.error('Voice agent API error:', err);
+      const errorMsg = {
+        sender: 'assistant',
+        text:
+          selectedLanguage === 'hi-IN'
+            ? 'क्षमा करें, कनेक्शन में त्रुटि हुई। कृपया दोबारा प्रयास करें।'
+            : 'Sorry, could not process request right now. Please try again.',
+        timestamp: 'Just now'
+      };
+      setConversation((prev) => [...prev, errorMsg]);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [inputText, selectedLanguage, setActiveTab, onSelectPreselectedDevice, playSpeechAudio]);
+
+  // Initialize Web Speech Recognition
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -73,7 +164,7 @@ export default function VoiceAssistantModal({
 
       recognitionRef.current = recognition;
     }
-  }, [selectedLanguage]);
+  }, [selectedLanguage, handleSendQuery]);
 
   const toggleListening = () => {
     if (!recognitionRef.current) {
@@ -89,134 +180,46 @@ export default function VoiceAssistantModal({
     }
   };
 
-  // Play audio response using Sarvam audio or browser fallback
-  const playSpeechAudio = (base64Audio, fallbackText) => {
-    if (base64Audio) {
-      try {
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
-        const audio = new Audio(`data:audio/wav;base64,${base64Audio}`);
-        audioRef.current = audio;
-        setIsPlayingAudio(true);
-        audio.play();
-        audio.onended = () => setIsPlayingAudio(false);
-        audio.onerror = () => {
-          fallbackSpeechSynthesis(fallbackText);
-        };
-        return;
-      } catch (e) {
-        console.warn('Sarvam audio playback error:', e);
-      }
-    }
-
-    // Fallback: Browser Web Speech API
-    fallbackSpeechSynthesis(fallbackText);
-  };
-
-  const fallbackSpeechSynthesis = (text) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = selectedLanguage;
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-
-      // Select matching voice if available
-      const voices = window.speechSynthesis.getVoices();
-      const matchVoice = voices.find((v) => v.lang.startsWith(selectedLanguage.split('-')[0]));
-      if (matchVoice) utterance.voice = matchVoice;
-
-      setIsPlayingAudio(true);
-      utterance.onend = () => setIsPlayingAudio(false);
-      utterance.onerror = () => setIsPlayingAudio(false);
-      window.speechSynthesis.speak(utterance);
-    }
-  };
-
-  const handleSendQuery = async (queryText) => {
-    const textToSend = queryText || inputText;
-    if (!textToSend.trim()) return;
-
-    // Add user message to conversation
-    const userMsg = {
-      sender: 'user',
-      text: textToSend,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    setConversation((prev) => [...prev, userMsg]);
-    setInputText('');
-    setIsProcessing(true);
-
-    try {
-      const res = await axios.post('http://127.0.0.1:8000/api/voice-agent', {
-        text: textToSend,
-        target_language: selectedLanguage
-      });
-
-      const { reply_text, audio_base64, action_tab, target_device } = res.data;
-
-      const assistantMsg = {
-        sender: 'assistant',
-        text: reply_text,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        action_tab: action_tab,
-        target_device: target_device
-      };
-
-      setConversation((prev) => [...prev, assistantMsg]);
-      playSpeechAudio(audio_base64, reply_text);
-
-      // Perform actionable intent if target tab specified
-      if (action_tab && action_tab !== 'dashboard' && setActiveTab) {
-        // Option to navigate directly or show button
-        if (target_device && onSelectPreselectedDevice) {
-          onSelectPreselectedDevice(target_device);
-        }
-      }
-    } catch (err) {
-      console.error('Voice agent API error:', err);
-      const errorMsg = {
-        sender: 'assistant',
-        text:
-          selectedLanguage === 'hi-IN'
-            ? 'क्षमा करें, कनेक्शन में त्रुटि हुई। कृपया दोबारा प्रयास करें।'
-            : 'Sorry, could not process request right now. Please try again.',
-        timestamp: 'Just now'
-      };
-      setConversation((prev) => [...prev, errorMsg]);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl max-w-xl w-full h-[620px] shadow-2xl flex flex-col overflow-hidden border border-gray-100">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-3xl max-w-xl w-full h-[90dvh] max-h-[620px] shadow-2xl flex flex-col overflow-hidden border border-gray-100">
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-[#002970] to-[#0a358c] text-white p-4.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#00b9f5] text-[#002970] flex items-center justify-center shadow-md">
-              <Sparkles size={20} />
+        <div className="bg-gradient-to-r from-[#002970] to-[#0a358c] text-white p-3.5 sm:p-4.5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#00b9f5] text-[#002970] flex items-center justify-center shadow-md shrink-0">
+              <Sparkles size={18} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-black text-base">Paytm Indus Voice AI</h3>
+                <h3 className="font-black text-sm sm:text-base">Paytm Indus Voice AI</h3>
                 <span className="text-[10px] bg-white/20 text-[#00b9f5] font-black px-1.5 py-0.5 rounded">
                   Sarvam AI
                 </span>
               </div>
-              <p className="text-[11px] text-blue-200">
+              <p className="text-[10px] sm:text-[11px] text-blue-200">
                 Vernacular Accessibility for Appliances & Warranty
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            {setSelectedLanguage && (
+              <select
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+                className="bg-white/10 text-white text-[11px] rounded-lg px-2 py-1 outline-none border border-white/20"
+              >
+                <option value="hi-IN" className="text-gray-900">हिन्दी</option>
+                <option value="en-IN" className="text-gray-900">English</option>
+                <option value="te-IN" className="text-gray-900">తెలుగు</option>
+                <option value="ta-IN" className="text-gray-900">தமிழ்</option>
+              </select>
+            )}
+
             {isPlayingAudio && (
-              <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full text-xs text-cyan-300">
+              <div className="hidden sm:flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full text-xs text-cyan-300">
                 <Volume2 size={14} className="animate-pulse" />
                 <span className="text-[10px] font-bold">Speaking...</span>
               </div>
@@ -234,9 +237,9 @@ export default function VoiceAssistantModal({
           </div>
         </div>
 
-        {/* Audio Visualizer Wave Bar (When speaking or listening) */}
+        {/* Audio Visualizer Wave Bar */}
         {(isListening || isPlayingAudio) && (
-          <div className="bg-[#0b192e] px-4 py-2.5 flex items-center justify-center gap-1.5 border-b border-white/10">
+          <div className="bg-[#0b192e] px-4 py-2 flex items-center justify-center gap-1.5 border-b border-white/10">
             <span className="text-[11px] font-bold text-[#00b9f5] mr-2">
               {isListening ? 'Listening to your voice...' : 'Indus Voice Playing'}
             </span>
@@ -254,58 +257,56 @@ export default function VoiceAssistantModal({
         )}
 
         {/* Conversation Message List */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-gray-50/60">
+        <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-3.5 bg-gray-50/60">
           {conversation.map((msg, index) => (
             <div
               key={index}
-              className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+              className={`flex flex-col ${
+                msg.sender === 'user' ? 'items-end' : 'items-start'
+              }`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl p-3.5 text-xs leading-relaxed ${
+                className={`max-w-[85%] sm:max-w-[80%] rounded-2xl p-3 sm:p-3.5 text-xs shadow-xs leading-relaxed ${
                   msg.sender === 'user'
-                    ? 'bg-[#002970] text-white rounded-br-none shadow-xs'
-                    : 'bg-white text-gray-800 border border-gray-200/90 rounded-bl-none shadow-xs'
+                    ? 'bg-[#002970] text-white rounded-br-xs'
+                    : 'bg-white text-gray-800 border border-gray-200/80 rounded-bl-xs'
                 }`}
               >
-                <p className="font-medium whitespace-pre-line">{msg.text}</p>
+                <p className="font-medium whitespace-pre-wrap">{msg.text}</p>
 
-                {/* Interactive Action Pill if returned by agent */}
                 {msg.action_tab && (
                   <button
                     onClick={() => {
-                      if (onClose) onClose();
                       if (setActiveTab) setActiveTab(msg.action_tab);
+                      onClose();
                     }}
-                    className="mt-2.5 inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-[#002970] font-bold px-2.5 py-1 rounded-lg border border-blue-200 text-[11px] transition"
+                    className="mt-2.5 px-3 py-1.5 bg-[#00b9f5] hover:bg-[#009fd4] text-[#002970] font-bold rounded-lg text-[11px] flex items-center gap-1.5 transition"
                   >
-                    <span>Open {msg.action_tab.toUpperCase()} Section</span>
+                    <span>Open {msg.action_tab === 'service' ? 'Service Booking' : msg.action_tab}</span>
                     <ArrowRight size={12} />
                   </button>
                 )}
               </div>
-              <span className="text-[10px] text-gray-400 mt-1 px-1">{msg.timestamp}</span>
+              <span className="text-[9px] text-gray-400 mt-1 px-1">{msg.timestamp}</span>
             </div>
           ))}
 
           {isProcessing && (
-            <div className="flex items-center gap-2 text-xs text-gray-500 italic p-2 bg-white rounded-xl border w-fit">
+            <div className="flex items-center gap-2 text-xs text-gray-400 italic p-2 bg-white rounded-xl border border-gray-100 w-fit">
               <Sparkles size={14} className="text-[#00b9f5] animate-spin" />
-              Indus is processing and synthesizing vernacular response...
+              <span>Indus AI processing your voice query...</span>
             </div>
           )}
         </div>
 
-        {/* Quick Voice Prompts */}
-        <div className="p-3 bg-white border-t border-gray-100">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0 mr-1">
-              Suggestions:
-            </span>
-            {samplePrompts.map((p, i) => (
+        {/* Suggested Queries */}
+        <div className="p-2 sm:p-3 bg-white border-t border-gray-100">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {samplePrompts.map((p, idx) => (
               <button
-                key={i}
+                key={idx}
                 onClick={() => handleSendQuery(p.query)}
-                className="bg-gray-100 hover:bg-blue-50 hover:text-[#002970] text-gray-700 text-[11px] font-medium px-2.5 py-1 rounded-lg border border-gray-200 whitespace-nowrap transition"
+                className="whitespace-nowrap px-2.5 py-1 bg-blue-50/70 hover:bg-blue-100 text-[#002970] rounded-lg text-[10px] font-semibold transition border border-blue-100/80"
               >
                 {p.label}
               </button>
@@ -313,22 +314,19 @@ export default function VoiceAssistantModal({
           </div>
         </div>
 
-        {/* Input Controls */}
-        <div className="p-3.5 bg-white border-t border-gray-200 flex items-center gap-2">
-          {/* Mic Button */}
+        {/* Input Bar */}
+        <div className="p-3 bg-white border-t border-gray-100 flex items-center gap-2">
           <button
             onClick={toggleListening}
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition shadow-xs shrink-0 ${
+            className={`p-3 rounded-2xl transition flex items-center justify-center shrink-0 shadow-xs ${
               isListening
-                ? 'bg-red-500 text-white animate-pulse ring-4 ring-red-200'
-                : 'bg-blue-50 text-[#002970] hover:bg-blue-100 border border-blue-200'
+                ? 'bg-red-500 text-white animate-pulse'
+                : 'bg-blue-50 text-[#002970] hover:bg-[#002970] hover:text-white'
             }`}
-            title={isListening ? 'Stop Listening' : 'Speak via Microphone'}
           >
             {isListening ? <MicOff size={20} /> : <Mic size={20} />}
           </button>
 
-          {/* Text Input */}
           <input
             type="text"
             value={inputText}
@@ -338,23 +336,21 @@ export default function VoiceAssistantModal({
             }}
             placeholder={
               selectedLanguage === 'hi-IN'
-                ? 'यहाँ बोलें या टाइप करें (उदा. LG AC की वारंटी कब खत्म होगी?)...'
-                : 'Speak or type here (e.g. Check my Samsung warranty)...'
+                ? 'माइक दबाएं या टाइप करें (उदा: मेरी AC रिपेयर बुक करें)...'
+                : 'Tap mic or type query (e.g. check warranty or book repair)...'
             }
-            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 outline-none focus:bg-white focus:border-[#00b9f5]"
+            className="flex-1 bg-gray-100/80 border border-gray-200 rounded-2xl px-4 py-2.5 text-base sm:text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#00b9f5] focus:bg-white transition"
           />
 
-          {/* Send Button */}
           <button
             onClick={() => handleSendQuery()}
-            disabled={!inputText.trim() || isProcessing}
-            className="w-11 h-11 rounded-2xl bg-[#002970] hover:bg-[#081e4c] disabled:opacity-40 text-white flex items-center justify-center transition shadow-xs shrink-0"
+            disabled={!inputText.trim()}
+            className="p-3 rounded-2xl bg-[#002970] hover:bg-[#092257] disabled:opacity-40 text-white transition flex items-center justify-center shrink-0 shadow-xs"
           >
-            <Send size={16} />
+            <Send size={18} />
           </button>
         </div>
       </div>
     </div>
   );
 }
-

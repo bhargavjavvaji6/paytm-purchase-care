@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   X,
   ShieldCheck,
   CheckCircle,
-  Sparkles,
-  Zap,
-  ArrowRight,
-  Lock,
-  Star
+  Lock
 } from 'lucide-react';
 
 export default function WarrantyExtensionModal({ device, isOpen, onClose, onSuccess }) {
@@ -67,19 +63,19 @@ export default function WarrantyExtensionModal({ device, isOpen, onClose, onSucc
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] shadow-2xl flex flex-col overflow-hidden border border-gray-100">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-3xl max-w-xl w-full max-h-[92dvh] shadow-2xl flex flex-col overflow-hidden border border-gray-100">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#002970] via-[#092562] to-[#00b9f5] text-white p-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-white/10 text-[#00b9f5]">
-              <ShieldCheck size={24} />
+        <div className="bg-gradient-to-r from-[#002970] via-[#092562] to-[#00b9f5] text-white p-3.5 sm:p-5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-white/10 text-[#00b9f5] shrink-0">
+              <ShieldCheck size={22} />
             </div>
             <div>
               <span className="text-[10px] font-bold text-[#00b9f5] uppercase tracking-wider block">
                 Paytm Care Shield Marketplace
               </span>
-              <h3 className="font-black text-base">Extend Appliance Protection</h3>
+              <h3 className="font-black text-sm sm:text-base">Extend Appliance Protection</h3>
             </div>
           </div>
 
@@ -95,7 +91,7 @@ export default function WarrantyExtensionModal({ device, isOpen, onClose, onSucc
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-5">
+        <div className="p-3.5 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5">
           {paymentSuccess ? (
             <div className="text-center py-6 space-y-4">
               <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">

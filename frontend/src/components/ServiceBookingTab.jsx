@@ -1,20 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config';
 import {
   Wrench,
   ShieldCheck,
   MapPin,
   Star,
-  Clock,
   CheckCircle2,
-  Calendar,
-  Phone,
   UserCheck,
-  AlertCircle,
-  ChevronRight,
-  ArrowRight,
-  Tag,
-  DollarSign
+  Tag
 } from 'lucide-react';
 
 export default function ServiceBookingTab({
@@ -40,8 +34,6 @@ export default function ServiceBookingTab({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(null);
 
-  const selectedDevice = purchases.find((p) => p.id === selectedDeviceId);
-
   // Common issues by category
   const commonIssues = [
     'Annual Preventive Servicing & Diagnostic Check',
@@ -61,7 +53,7 @@ export default function ServiceBookingTab({
 
     setIsSubmitting(true);
     try {
-      const res = await axios.post('http://127.0.0.1:8000/api/service-bookings', {
+      const res = await axios.post(`${API_BASE}/api/service-bookings`, {
         device_id: selectedDeviceId,
         service_type: serviceType,
         service_partner_id: selectedPartnerId,
@@ -85,7 +77,7 @@ export default function ServiceBookingTab({
   const handleCancelBooking = async (bookingId) => {
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
     try {
-      await axios.post(`http://127.0.0.1:8000/api/service-bookings/${bookingId}/cancel`);
+      await axios.post(`${API_BASE}/api/service-bookings/${bookingId}/cancel`);
       if (onBookingCreated) onBookingCreated();
     } catch (err) {
       console.error('Error cancelling:', err);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import {
   ShieldCheck,
@@ -8,10 +8,7 @@ import {
   History,
   Mic,
   CreditCard,
-  PhoneCall,
-  Sparkles,
-  Layers,
-  ShoppingBag
+  PhoneCall
 } from 'lucide-react';
 
 import Navbar from './components/Navbar';
@@ -28,7 +25,7 @@ import StrategicOverviewModal from './components/StrategicOverviewModal';
 import PaymentSimulatorModal from './components/PaymentSimulatorModal';
 import ExpiryVoiceCallModal from './components/ExpiryVoiceCallModal';
 
-const API_BASE = 'http://127.0.0.1:8000';
+import { API_BASE } from './config';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -42,7 +39,7 @@ function App() {
   // Language & Modals State
   const [selectedLanguage, setSelectedLanguage] = useState('hi-IN');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isSpeaking] = useState(false);
   const [viewingInvoiceDevice, setViewingInvoiceDevice] = useState(null);
   const [extendingWarrantyDevice, setExtendingWarrantyDevice] = useState(null);
   const [preselectedServiceDevice, setPreselectedServiceDevice] = useState(null);
@@ -53,11 +50,7 @@ function App() {
   const [isExpiryCallOpen, setIsExpiryCallOpen] = useState(false);
   const [expiryCallDevice, setExpiryCallDevice] = useState(null);
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
-
-  const fetchAllData = async () => {
+  const fetchAllData = useCallback(async () => {
     try {
       const [purchasesRes, statsRes, centersRes, bookingsRes, recallsRes, notifsRes] =
         await Promise.all([
@@ -78,7 +71,40 @@ function App() {
     } catch (err) {
       console.error('Failed to load data from API:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    const loadInitialData = async () => {
+      try {
+        const [purchasesRes, statsRes, centersRes, bookingsRes, recallsRes, notifsRes] =
+          await Promise.all([
+            axios.get(`${API_BASE}/api/purchases`),
+            axios.get(`${API_BASE}/api/dashboard/stats`),
+            axios.get(`${API_BASE}/api/service-centers`),
+            axios.get(`${API_BASE}/api/service-bookings`),
+            axios.get(`${API_BASE}/api/recalls`),
+            axios.get(`${API_BASE}/api/notifications`)
+          ]);
+
+        if (!ignore) {
+          setPurchases(purchasesRes.data);
+          setStats(statsRes.data);
+          setServiceCenters(centersRes.data);
+          setBookings(bookingsRes.data);
+          setRecalls(recallsRes.data);
+          setNotifications(notifsRes.data);
+        }
+      } catch (err) {
+        console.error('Failed to load data from API:', err);
+      }
+    };
+
+    loadInitialData();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleDeviceAdded = () => {
     fetchAllData();
@@ -95,7 +121,7 @@ function App() {
     setActiveTab('ledger');
   };
 
-  const handleWarrantyExtensionSuccess = (deviceId, planName) => {
+  const handleWarrantyExtensionSuccess = (deviceId) => {
     setPurchases((prev) =>
       prev.map((p) =>
         p.id === deviceId
@@ -120,12 +146,14 @@ function App() {
     {
       id: 'dashboard',
       label: 'Purchase Dashboard',
+      shortLabel: 'Dashboard',
       subtitle: 'Warranty & Protection',
       icon: <ShieldCheck size={18} />
     },
     {
       id: 'scanner',
       label: 'AI Invoice Scanner',
+      shortLabel: 'Scan Bill',
       subtitle: 'Instant Asset Onboarding',
       icon: <UploadCloud size={18} />,
       badge: 'AI Vision'
@@ -133,12 +161,14 @@ function App() {
     {
       id: 'service',
       label: 'Service Booking',
+      shortLabel: 'Services',
       subtitle: 'Doorstep & Centers (O2O)',
       icon: <Wrench size={18} />
     },
     {
       id: 'recalls',
       label: 'Warranty & Recalls',
+      shortLabel: 'Recalls',
       subtitle: 'Safety Bulletins & AMC',
       icon: <AlertTriangle size={18} />,
       badge: recalls.length ? `${recalls.length} Alerts` : null
@@ -146,20 +176,20 @@ function App() {
     {
       id: 'ledger',
       label: 'Digital Asset Ledger',
+      shortLabel: 'Ledger',
       subtitle: 'Passport & Resale Value',
       icon: <History size={18} />
     }
   ];
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] text-gray-800 flex flex-col">
+    <div className="min-h-screen bg-[#f4f7fb] text-gray-800 flex flex-col pb-16 lg:pb-0">
       {/* 1. Global Navbar */}
       <Navbar
         onOpenVoice={() => setIsVoiceModalOpen(true)}
         onOpenStrategicOverview={() => setIsStrategicOverviewOpen(true)}
         onOpenPaymentSimulator={() => setIsPaymentSimulatorOpen(true)}
         onOpenExpiryVoiceCall={() => {
-          // Defaults to HP Laptop if none selected
           const laptopDev = purchases.find(
             (p) => (p.category === 'Laptops & PCs' || p.product_name.includes('Laptop')) && p.warranty_status === 'Expiring Soon'
           ) || purchases[3] || purchases[0];
@@ -173,17 +203,72 @@ function App() {
       />
 
       {/* 2. Main Content Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-4 sm:py-6 w-full flex-1">
         {/* Top Stats Overview */}
         <StatsOverview
           stats={stats}
           onSelectFilter={() => setActiveTab('dashboard')}
         />
 
+        {/* Mobile / Tablet Horizontal Navigation Tabs */}
+        <div className="lg:hidden mb-4 bg-white rounded-2xl border border-gray-200/80 p-1.5 shadow-xs">
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-1">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition shrink-0 ${
+                  activeTab === item.id
+                    ? 'bg-[#002970] text-white shadow-xs'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {item.icon}
+                <span>{item.shortLabel}</span>
+                {item.badge && (
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[#00b9f5] text-[#002970] font-black">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile Quick Action Buttons Bar */}
+          <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-gray-100 mt-1">
+            <button
+              onClick={() => setIsPaymentSimulatorOpen(true)}
+              className="bg-blue-50 text-[#002970] hover:bg-blue-100 p-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center text-center transition"
+            >
+              <CreditCard size={15} className="text-[#00b9f5] mb-0.5" />
+              <span>Simulate Pay</span>
+            </button>
+            <button
+              onClick={() => {
+                const laptopDev = purchases.find(
+                  (p) => (p.category === 'Laptops & PCs' || p.product_name.includes('Laptop')) && p.warranty_status === 'Expiring Soon'
+                ) || purchases[3] || purchases[0];
+                handleTriggerExpiryVoiceCall(laptopDev);
+              }}
+              className="bg-amber-50 text-amber-900 hover:bg-amber-100 p-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center text-center transition"
+            >
+              <PhoneCall size={15} className="text-amber-600 mb-0.5" />
+              <span>Expiry Call</span>
+            </button>
+            <button
+              onClick={() => setIsVoiceModalOpen(true)}
+              className="bg-[#002970] text-white p-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center text-center transition"
+            >
+              <Mic size={15} className="text-[#00b9f5] mb-0.5" />
+              <span>Indus AI Voice</span>
+            </button>
+          </div>
+        </div>
+
         {/* Layout Grid: Sidebar Navigation + Tab Pane */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Column: Navigation Sidebar */}
-          <div className="lg:col-span-1 space-y-4">
+          {/* Left Column: Desktop Navigation Sidebar */}
+          <div className="hidden lg:block lg:col-span-1 space-y-4">
             <div className="bg-white rounded-2xl border border-gray-200/80 p-3 shadow-xs sticky top-20">
               <div className="px-3 py-2 text-[11px] font-black text-gray-400 uppercase tracking-wider flex items-center justify-between">
                 <span>Lifecycle Navigation</span>
@@ -309,7 +394,6 @@ function App() {
             {activeTab === 'dashboard' && (
               <PurchaseDashboard
                 purchases={purchases}
-                onSelectDevice={(device) => setViewingInvoiceDevice(device)}
                 onBookService={handleBookServiceForDevice}
                 onOpenLedger={handleOpenLedgerForDevice}
                 onExtendWarranty={(device) => setExtendingWarrantyDevice(device)}
@@ -343,7 +427,6 @@ function App() {
                 recalls={recalls}
                 purchases={purchases}
                 onExtendWarranty={(device) => setExtendingWarrantyDevice(device)}
-                onBookService={handleBookServiceForDevice}
               />
             )}
 
@@ -409,7 +492,7 @@ function App() {
       <PaymentSimulatorModal
         isOpen={isPaymentSimulatorOpen}
         onClose={() => setIsPaymentSimulatorOpen(false)}
-        onPaymentSuccessAndOpenScanner={(device) => {
+        onPaymentSuccessAndOpenScanner={() => {
           setActiveTab('scanner');
         }}
         onDeviceRegistered={fetchAllData}

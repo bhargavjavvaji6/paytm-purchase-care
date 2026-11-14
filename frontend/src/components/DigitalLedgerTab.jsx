@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config';
 import {
   TrendingUp,
   ShieldCheck,
@@ -7,15 +8,11 @@ import {
   CheckCircle,
   FileCheck,
   Plus,
-  ArrowRight,
   DollarSign,
-  AlertCircle,
   History,
   Sparkles,
-  Smartphone,
   Calendar,
-  Wrench,
-  Clock
+  Wrench
 } from 'lucide-react';
 
 export default function DigitalLedgerTab({
@@ -61,7 +58,7 @@ export default function DigitalLedgerTab({
   const handleAddLogSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`http://127.0.0.1:8000/api/purchases/${selectedDeviceId}/repair-log`, {
+      await axios.post(`${API_BASE}/api/purchases/${selectedDeviceId}/repair-log`, {
         service_date: serviceDate,
         service_center: serviceCenter,
         issue_description: issueDesc,
@@ -82,7 +79,7 @@ export default function DigitalLedgerTab({
     e.preventDefault();
     setIsSubmittingExchange(true);
     try {
-      const res = await axios.post('http://127.0.0.1:8000/api/resale/exchange', {
+      const res = await axios.post(`${API_BASE}/api/resale/exchange`, {
         device_id: selectedDeviceId,
         payout_method: payoutMethod,
         account_identifier: accountIdentifier

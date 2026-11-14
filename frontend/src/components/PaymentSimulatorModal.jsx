@@ -1,14 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../config';
 import {
   X,
   CreditCard,
   CheckCircle,
-  FileText,
   UploadCloud,
   ShieldCheck,
-  Sparkles,
-  ArrowRight,
   Smartphone,
   Laptop,
   Wind,
@@ -81,7 +79,7 @@ export default function PaymentSimulatorModal({
     setIsProcessing(true);
 
     try {
-      const res = await axios.post('http://127.0.0.1:8000/api/add-realtime-purchase', {
+      const res = await axios.post(`${API_BASE}/api/add-realtime-purchase`, {
         merchant: merchant,
         product_name: productName,
         category: category,
@@ -101,19 +99,19 @@ export default function PaymentSimulatorModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] shadow-2xl flex flex-col overflow-hidden border border-gray-100">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92dvh] shadow-2xl flex flex-col overflow-hidden border border-gray-100">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#002970] to-[#0a358c] text-white p-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#00b9f5] text-[#002970] flex items-center justify-center font-black shadow-md">
-              <CreditCard size={20} />
+        <div className="bg-gradient-to-r from-[#002970] to-[#0a358c] text-white p-3.5 sm:p-5 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#00b9f5] text-[#002970] flex items-center justify-center font-black shadow-md shrink-0">
+              <CreditCard size={18} />
             </div>
             <div>
               <span className="text-[10px] font-bold text-[#00b9f5] uppercase tracking-wider block">
                 Paytm Soundbox & Checkout Simulator
               </span>
-              <h3 className="font-black text-base">Make a Purchase via Paytm</h3>
+              <h3 className="font-black text-sm sm:text-base">Make a Purchase via Paytm</h3>
             </div>
           </div>
 
@@ -129,7 +127,7 @@ export default function PaymentSimulatorModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-4">
+        <div className="p-3.5 sm:p-6 overflow-y-auto space-y-4">
           {successResult ? (
             /* Successful Payment Screen with Instant Bill Submission Prompt */
             <div className="space-y-4 text-center">

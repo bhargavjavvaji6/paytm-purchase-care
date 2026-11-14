@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   ShieldCheck,
   X,
@@ -6,7 +5,6 @@ import {
   Briefcase,
   Layers,
   ArrowRight,
-  Sparkles,
   CheckCircle2
 } from 'lucide-react';
 
@@ -22,20 +20,20 @@ export default function StrategicOverviewModal({ isOpen, onClose, onNavigate }) 
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] shadow-2xl flex flex-col overflow-hidden border border-gray-100">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92dvh] shadow-2xl flex flex-col overflow-hidden border border-gray-100">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#002970] via-[#092562] to-[#00b9f5] text-white p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 text-[#00b9f5] flex items-center justify-center border border-white/20">
-              <ShieldCheck size={28} />
+        <div className="bg-gradient-to-r from-[#002970] via-[#092562] to-[#00b9f5] text-white p-4 sm:p-6 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/10 text-[#00b9f5] flex items-center justify-center border border-white/20 shrink-0">
+              <ShieldCheck size={24} />
             </div>
             <div>
               <span className="text-[10px] font-black tracking-widest text-[#00b9f5] uppercase block">
                 Official Strategic Vision
               </span>
-              <h3 className="font-black text-xl">Paytm Purchase Care Hub</h3>
-              <p className="text-xs text-blue-100 mt-0.5">
+              <h3 className="font-black text-lg sm:text-xl">Paytm Purchase Care Hub</h3>
+              <p className="text-[11px] sm:text-xs text-blue-100 mt-0.5">
                 Strategic shift from pure transactional commerce to lifelong product management
               </p>
             </div>
@@ -50,7 +48,7 @@ export default function StrategicOverviewModal({ isOpen, onClose, onNavigate }) 
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6">
+        <div className="p-3.5 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6">
           {/* Strategic Overview Pillars */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             {/* Category */}
