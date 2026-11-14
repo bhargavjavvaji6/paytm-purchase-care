@@ -71,6 +71,11 @@ export default function PurchaseDashboard({
     (p) => (p.category === 'Laptops & PCs' || p.product_name.toLowerCase().includes('laptop')) && p.warranty_status === 'Expiring Soon'
   );
 
+  const activeCount = purchases.filter((p) => p.warranty_status === 'Active').length;
+  const expiringCount = purchases.filter((p) => p.warranty_status === 'Expiring Soon').length;
+  const expiredCount = purchases.filter((p) => p.warranty_status === 'Expired').length;
+  const healthScore = purchases.length > 0 ? Math.round((activeCount / purchases.length) * 100) : 100;
+
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
     setIsDeleting(true);
@@ -182,6 +187,41 @@ export default function PurchaseDashboard({
           </div>
         </div>
       )}
+
+      {/* Fleet Warranty Health Meter Card */}
+      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200">
+            <ShieldCheck size={22} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-gray-900">Warranty Fleet Health: {healthScore}% Protected</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                A-Grade Coverage
+              </span>
+            </div>
+            <div className="w-48 sm:w-64 h-2 bg-gray-100 rounded-full mt-1.5 overflow-hidden flex">
+              <div style={{ width: `${healthScore}%` }} className="bg-emerald-500 h-full rounded-full transition-all duration-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs font-semibold text-gray-600 self-stretch md:self-auto justify-between md:justify-end border-t md:border-t-0 pt-2 md:pt-0 border-gray-100">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>{activeCount} Active</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span>{expiringCount} Expiring Soon</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-red-400" />
+            <span>{expiredCount} Expired</span>
+          </div>
+        </div>
+      </div>
 
       {/* 3. Filter Bar & Search */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-gray-200/80 shadow-xs">

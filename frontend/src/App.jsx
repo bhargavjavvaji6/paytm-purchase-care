@@ -23,6 +23,7 @@ import WarrantyExtensionModal from './components/WarrantyExtensionModal';
 import StrategicOverviewModal from './components/StrategicOverviewModal';
 import PaymentSimulatorModal from './components/PaymentSimulatorModal';
 import ExpiryVoiceCallModal from './components/ExpiryVoiceCallModal';
+import FloatingRobotAssistant from './components/FloatingRobotAssistant';
 
 import { DataService } from './services/dataService';
 
@@ -497,6 +498,14 @@ function App() {
         onClose={() => setIsExpiryCallOpen(false)}
         targetDevice={expiryCallDevice}
         onRenewSuccess={handleWarrantyExtensionSuccess}
+      />
+
+      {/* Floating Animated Robot Assistant on bottom-right corner */}
+      <FloatingRobotAssistant
+        onOpenVoiceAssistant={() => setIsVoiceModalOpen(true)}
+        onOpenPaymentSimulator={() => setIsPaymentSimulatorOpen(true)}
+        onOpenExpiryCall={() => setIsExpiryCallOpen(true)}
+        onNavigateToScan={() => setActiveTab('scanner')}
       />
     </div>
   );
