@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import axios from 'axios';
+import { API_BASE } from '../config';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -17,7 +19,10 @@ import {
   Calendar,
   CreditCard,
   ShoppingBag,
-  PhoneCall
+  PhoneCall,
+  Trash2,
+  CheckCircle,
+  X
 } from 'lucide-react';
 
 export default function PurchaseDashboard({
@@ -29,10 +34,14 @@ export default function PurchaseDashboard({
   onViewInvoice,
   onOpenPaymentSimulator,
   onOpenStrategicOverview,
-  onTriggerExpiryVoiceCall
+  onTriggerExpiryVoiceCall,
+  onDeleteDevice
 }) {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
 
   const categories = [
     { id: 'All', label: 'All Items' },
@@ -63,8 +72,44 @@ export default function PurchaseDashboard({
     (p) => (p.category === 'Laptops & PCs' || p.product_name.toLowerCase().includes('laptop')) && p.warranty_status === 'Expiring Soon'
   );
 
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleting(true);
+
+    try {
+      await axios.delete(`${API_BASE}/api/purchases/${itemToDelete.id}`);
+      setToastMessage(`"${itemToDelete.product_name}" removed from Paytm Care Hub.`);
+      if (onDeleteDevice) {
+        onDeleteDevice(itemToDelete.id);
+      }
+      setTimeout(() => setToastMessage(null), 3500);
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+      // Still notify parent
+      if (onDeleteDevice) {
+        onDeleteDevice(itemToDelete.id);
+      }
+    } finally {
+      setIsDeleting(false);
+      setItemToDelete(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-2xl text-emerald-800 text-xs font-bold flex items-center justify-between shadow-sm animate-fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle size={16} className="text-emerald-600 shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+          <button onClick={() => setToastMessage(null)} className="text-emerald-600 hover:text-emerald-900">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
       {/* 1. Official Strategic Vision Banner (Clickable) */}
       <div 
         onClick={onOpenStrategicOverview}
@@ -132,45 +177,44 @@ export default function PurchaseDashboard({
             </button>
             <button
               onClick={() => onExtendWarranty(expiringLaptop)}
-              className="w-full sm:w-auto px-4 py-2.5 bg-[#002970] hover:bg-[#0b1e4f] text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1.5"
+              className="w-full sm:w-auto px-3.5 py-2.5 bg-[#002970] hover:bg-[#081e4c] text-white text-xs font-bold rounded-xl shadow-xs transition"
             >
-              <ShieldCheck size={14} className="text-[#00b9f5]" />
-              Renew Warranty (₹899)
+              Renew for ₹899
             </button>
           </div>
         </div>
       )}
 
-      {/* 3. Controls & Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col md:flex-row gap-4 justify-between items-center">
-        {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-          {categories.map((cat) => (
+      {/* 3. Filter Bar & Search */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-gray-200/80 shadow-xs">
+        {/* Categories Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          {categories.map((c) => (
             <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                selectedCategory === cat.id
+              key={c.id}
+              onClick={() => setSelectedCategory(c.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                selectedCategory === c.id
                   ? 'bg-[#002970] text-white shadow-xs'
-                  : 'bg-gray-100/80 text-gray-600 hover:bg-gray-200/70'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
-              {cat.icon}
-              {cat.label}
+              {c.icon}
+              <span>{c.label}</span>
             </button>
           ))}
         </div>
 
-        {/* Action CTAs */}
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <div className="relative flex-1 sm:w-56">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        {/* Search & Actions */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 sm:w-60">
+            <Search size={15} className="absolute left-3 top-2.5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search model, brand..."
+              placeholder="Search product, brand..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#00b9f5] focus:bg-white transition"
+              className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:border-[#00b9f5] focus:bg-white"
             />
           </div>
 
@@ -228,8 +272,8 @@ export default function PurchaseDashboard({
                     )}
                   </div>
 
-                  {/* Status Pill */}
-                  <div className="absolute top-3 right-3">
+                  {/* Status Pill & Delete Button */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
                     {item.warranty_status === 'Active' && (
                       <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1">
                         <ShieldCheck size={11} /> Active
@@ -245,6 +289,18 @@ export default function PurchaseDashboard({
                         Expired
                       </span>
                     )}
+
+                    {/* Quick Delete Trash Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setItemToDelete(item);
+                      }}
+                      title="Delete product from Care Hub"
+                      className="p-1 rounded-lg bg-black/40 hover:bg-red-600 text-white transition backdrop-blur-xs shadow-xs"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
 
                   {/* Product Title on overlay */}
@@ -273,7 +329,7 @@ export default function PurchaseDashboard({
                     <div className="flex justify-between items-center text-[11px] mb-1">
                       <span className="text-gray-500 flex items-center gap-1">
                         <Calendar size={12} className="text-gray-400" />
-                        {isGrocery ? 'Purchased:' : 'Purchased:'} {item.purchase_date}
+                        Purchased: {item.purchase_date}
                       </span>
                       <span className="font-bold text-gray-800">
                         {isGrocery ? 'Best Before:' : 'Expires:'} {item.warranty_expiry}
@@ -371,6 +427,21 @@ export default function PurchaseDashboard({
                     AI Expiry Voice Call (Sarvam)
                   </button>
                 )}
+
+                {/* Explicit Delete Item Row */}
+                <div className="col-span-2 pt-1 border-t border-gray-200/60 flex items-center justify-between text-[11px]">
+                  <span className="text-gray-400 font-mono text-[10px]">
+                    SN: {item.serial_number || 'VERIFIED'}
+                  </span>
+                  <button
+                    onClick={() => setItemToDelete(item)}
+                    className="text-red-500 hover:text-red-700 font-bold hover:bg-red-50 px-2 py-1 rounded-lg transition flex items-center gap-1"
+                    title="Remove this item from Paytm Care Hub"
+                  >
+                    <Trash2 size={12} />
+                    <span>Delete Item</span>
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -385,10 +456,49 @@ export default function PurchaseDashboard({
               setSelectedCategory('All');
               setSearchQuery('');
             }}
-            className="mt-3 text-xs text-[#00b9f5] font-bold hover:underline"
+            className="mt-3 px-4 py-2 bg-[#002970] text-white text-xs font-bold rounded-xl"
           >
-            Clear Filters
+            Reset Filters
           </button>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {itemToDelete && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-gray-100 space-y-4 animate-scale-up">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 size={24} />
+            </div>
+            <div className="text-center space-y-1">
+              <h3 className="font-black text-base text-gray-900">Delete Product from Care Hub?</h3>
+              <p className="text-xs text-gray-600">
+                Are you sure you want to remove <span className="font-bold text-gray-800">{itemToDelete.product_name}</span>?
+              </p>
+              <div className="text-[11px] text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-100 text-left mt-2 space-y-0.5">
+                <p className="font-bold">⚠️ Irreversible Action:</p>
+                <p>• Automated warranty countdowns will be cancelled.</p>
+                <p>• Recall and safety notifications will stop for this serial number.</p>
+                <p>• Verified service history will be removed from your digital ledger.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                onClick={() => setItemToDelete(null)}
+                className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5"
+              >
+                {isDeleting ? 'Deleting...' : 'Yes, Delete Item'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

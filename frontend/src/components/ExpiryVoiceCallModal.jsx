@@ -43,6 +43,17 @@ export default function ExpiryVoiceCallModal({
 
   const isGrocery = (device.category || '').toLowerCase() === 'groceries';
 
+  // 7 Supported Vernacular Languages
+  const languagesList = [
+    { code: 'hi-IN', label: 'हिन्दी', name: 'Hindi' },
+    { code: 'en-IN', label: 'English', name: 'English' },
+    { code: 'te-IN', label: 'తెలుగు', name: 'Telugu' },
+    { code: 'ta-IN', label: 'தமிழ்', name: 'Tamil' },
+    { code: 'kn-IN', label: 'ಕನ್ನಡ', name: 'Kannada' },
+    { code: 'ml-IN', label: 'മലയാളം', name: 'Malayalam' },
+    { code: 'bn-IN', label: 'বাংলা', name: 'Bengali' }
+  ];
+
   const stopVoice = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -58,8 +69,17 @@ export default function ExpiryVoiceCallModal({
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
-      utterance.rate = 1.0;
+      utterance.rate = 0.95;
       utterance.pitch = 1.0;
+
+      // Select voice matching language if available in browser
+      const voices = window.speechSynthesis.getVoices();
+      const matchVoice = voices.find(
+        (v) => v.lang === lang || v.lang.startsWith(lang.split('-')[0])
+      );
+      if (matchVoice) {
+        utterance.voice = matchVoice;
+      }
 
       setIsPlaying(true);
       utterance.onend = () => setIsPlaying(false);
@@ -68,50 +88,75 @@ export default function ExpiryVoiceCallModal({
     }
   }, []);
 
-  const generateAndPlayVoiceAlert = useCallback(async (langCode) => {
-    setIsLoadingAudio(true);
-    stopVoice();
+  const generateAndPlayVoiceAlert = useCallback(
+    async (langCode) => {
+      setIsLoadingAudio(true);
+      stopVoice();
 
-    try {
-      const res = await axios.post(`${API_BASE}/api/voice-agent/expiry-alert`, {
-        product_name: device.product_name,
-        target_language: langCode,
-        category: device.category || 'laptops',
-        days_left: device.days_remaining || 6
-      });
+      try {
+        const res = await axios.post(`${API_BASE}/api/voice-agent/expiry-alert`, {
+          product_name: device.product_name,
+          target_language: langCode,
+          category: device.category || 'laptops',
+          days_left: device.days_remaining || 6
+        });
 
-      setSpeechText(res.data.speech_text);
+        setSpeechText(res.data.speech_text);
 
-      if (res.data.audio_base64) {
-        try {
-          const audio = new Audio(`data:audio/wav;base64,${res.data.audio_base64}`);
-          audioRef.current = audio;
-          setIsPlaying(true);
-          audio.play();
-          audio.onended = () => setIsPlaying(false);
-          audio.onerror = () => {
-            speakWithBrowserFallback(res.data.speech_text, langCode);
-          };
-          return;
-        } catch (e) {
-          console.warn('Sarvam audio playback error:', e);
+        if (res.data.audio_base64) {
+          try {
+            const audio = new Audio(`data:audio/wav;base64,${res.data.audio_base64}`);
+            audioRef.current = audio;
+            setIsPlaying(true);
+            audio.play();
+            audio.onended = () => setIsPlaying(false);
+            audio.onerror = () => {
+              speakWithBrowserFallback(res.data.speech_text, langCode);
+            };
+            return;
+          } catch (e) {
+            console.warn('Sarvam audio playback error:', e);
+          }
         }
-      }
 
-      // Fallback
-      speakWithBrowserFallback(res.data.speech_text, langCode);
-    } catch (err) {
-      console.error('Error generating voice alert:', err);
-      const fallbackMsg =
-        langCode === 'hi-IN'
-          ? `नमस्ते Bhargav! आपके ${device.product_name} की वारंटी ${device.days_remaining || 6} दिनों में समाप्त हो रही है। कृपया ₹899 में Paytm Care Shield एक्सटेंडेड वारंटी रिन्यू करने के लिए भुगतान करें।`
-          : `Hello Bhargav! Your ${device.product_name} warranty is expiring in ${device.days_remaining || 6} days. Please renew your warranty payment with Paytm Care Shield.`;
-      setSpeechText(fallbackMsg);
-      speakWithBrowserFallback(fallbackMsg, langCode);
-    } finally {
-      setIsLoadingAudio(false);
-    }
-  }, [device, stopVoice, speakWithBrowserFallback]);
+        // Web Speech synthesis fallback
+        speakWithBrowserFallback(res.data.speech_text, langCode);
+      } catch (err) {
+        console.error('Error generating voice alert:', err);
+        // High-fidelity vernacular fallbacks across all 7 languages
+        const fallbackMsgs = {
+          'te-IN': isGrocery
+            ? `నమస్తే భార్గవ్! మీరు Paytm Zepto ద్వారా కొనుగోలు చేసిన కిరాణా మరియు పాల ఉత్పత్తుల కాలపరిమితి ${device.days_remaining || 4} రోజుల్లో ముగియనుంది. దయచేసి తాజాగా ఉన్నప్పుడే వినియోగించండి.`
+            : `నమస్తే భార్గవ్! మీ ${device.product_name} వారంటీ ఇంకా ${device.days_remaining || 6} రోజుల్లో ముగియబోతోంది. భవిష్యత్తులో ఖరీదైన రిపేర్ల నుండి రక్షణ కోసం ₹899 కే Paytm Care Shield ఎక్స్‌టెండెడ్ వారంటీని వెంటనే రెన్యూ చేయండి.`,
+          'ta-IN': isGrocery
+            ? `வணக்கம் பார்கவ்! Paytm Zepto-வில் நீங்கள் வாங்கிய பால் மற்றும் மளிகைப் பொருட்களின் பயன்பாட்டு காலம் இன்னும் ${device.days_remaining || 4} நாட்களில் முடிவடைகிறது. தயவுசெய்து விரைவாக பயன்படுத்தவும்.`
+            : `வணக்கம் பார்கவ்! உங்கள் ${device.product_name} உத்தரவாதம் இன்னும் ${device.days_remaining || 6} நாட்களில் முடிகிறது. பழுது செலவுகளைத் தவிர்க்க ₹899 செலுத்தி Paytm Care Shield உத்தரவாதத்தை இப்போதே புதுப்பிக்கவும்.`,
+          'kn-IN': isGrocery
+            ? `ನಮಸ್ಕಾರ ಭಾರ್ಗವ್! Paytm Zepto ಮೂಲಕ ಖರೀದಿಸಿದ ದಿನಸಿ ಮತ್ತು ಹಾಲಿನ ಉತ್ಪನ್ನಗಳ ಅವಧಿಯು ಇನ್ನು ${device.days_remaining || 4} ದಿನಗಳಲ್ಲಿ ಮುಕ್ತಾಯವಾಗಲಿದೆ. ತಾಜಾವಾಗಿರುವಾಗಲೇ ಬಳಸಿ.`
+            : `ನಮಸ್ಕಾರ ಭಾರ್ಗವ್! ನಿಮ್ಮ ${device.product_name} ಸಾಧನದ ವಾರಂಟಿ ಇನ್ನು ${device.days_remaining || 6} ದಿನಗಳಲ್ಲಿ ಮುಕ್ತಾಯಗೊಳ್ಳಲಿದೆ. ದುಬಾರಿ ರಿಪೇರಿ ವೆಚ್ಚಗಳಿಂದ ರಕ್ಷಣೆ ಪಡೆಯಲು ₹899 ಪಾವತಿಸಿ Paytm Care Shield ವಾರಂಟಿ ನವೀಕರಿಸಿ.`,
+          'ml-IN': isGrocery
+            ? `നമസ്കാരം ഭാർഗവ്! Paytm Zepto വഴി വാങ്ങിയ പാൽ, പലചരക്ക് സാധനങ്ങളുടെ കാലാവധി ${device.days_remaining || 4} ദിവസത്തിനുള്ളിൽ അവസാനിക്കും. അവ ഫ്രഷായിരിക്കുമ്പോൾ തന്നെ ഉപയോഗിക്കുക.`
+            : `നമസ്കാരം ഭാർഗവ്! നിങ്ങളുടെ ${device.product_name} ഉപകരണത്തിന്റെ വാറന്റി കാലാവധി ${device.days_remaining || 6} ദിവസത്തിനുള്ളിൽ അവസാനിക്കുകയാണ്. ഭാവിയിലെ വലിയ റിപ്പയർ ചെലവുകൾ ഒഴിവാക്കാൻ വെറും ₹899-ന് Paytm Care Shield വഴി വാറന്റി ഇപ്പോൾ തന്നെ പുതുക്കൂ.`,
+          'bn-IN': isGrocery
+            ? `নমস্কার ভার্গব! Paytm Zepto থেকে কেনা আপনার দুধ এবং মুদি পণ্যের মেয়াদের আর মাত্র ${device.days_remaining || 4} দিন বাকি। দয়া করে তাজা থাকতেই ব্যবহার করুন।`
+            : `নমস্কার ভার্গব! আপনার ${device.product_name}-এর ওয়ারেন্টির মেয়াদ আর মাত্র ${device.days_remaining || 6} দিনে শেষ হবে। অপ্রত্যাশিত মেরামতের খরচ এড়াতে মাত্র ₹899 দিয়ে Paytm Care Shield ওয়ারেন্টি এখনই রিনিউ করুন।`,
+          'hi-IN': isGrocery
+            ? `नमस्ते भार्गव! आपके Zepto ग्रोसरी और डेयरी उत्पादों की ताजगी की अवधि ${device.days_remaining || 4} दिनों में समाप्त हो रही है। कृपया उत्पाद की ताजगी जांचें और समय पर उपभोग करें।`
+            : `नमस्ते भार्गव! आपके ${device.product_name} की वारंटी ${device.days_remaining || 6} दिनों में समाप्त हो रही है। कृपया ₹899 में Paytm Care Shield एक्सटेंडेड वारंटी रिन्यू करने के लिए भुगतान करें, ताकि भविष्य में महंगे रिपेयर से बचा जा सके।`,
+          'en-IN': isGrocery
+            ? `Hello Bhargav! Your fresh groceries and dairy items purchased on Paytm Zepto are nearing their expiration date in ${device.days_remaining || 4} days. Please consume while fresh.`
+            : `Hello Bhargav! Your ${device.product_name} warranty is expiring in ${device.days_remaining || 6} days. Please renew your payment for Paytm Care Shield extended coverage to prevent high repair costs.`
+        };
+
+        const msg = fallbackMsgs[langCode] || fallbackMsgs['en-IN'];
+        setSpeechText(msg);
+        speakWithBrowserFallback(msg, langCode);
+      } finally {
+        setIsLoadingAudio(false);
+      }
+    },
+    [device, isGrocery, stopVoice, speakWithBrowserFallback]
+  );
 
   // Trigger voice alert when modal opens or language changes
   useEffect(() => {
@@ -131,6 +176,11 @@ export default function ExpiryVoiceCallModal({
       }
     };
   }, [isOpen, language, generateAndPlayVoiceAlert]);
+
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang);
+    generateAndPlayVoiceAlert(newLang);
+  };
 
   const handleClose = () => {
     stopVoice();
@@ -166,7 +216,7 @@ export default function ExpiryVoiceCallModal({
                   Urgent Lifecycle Advisory
                 </span>
                 <span className="text-[10px] bg-white/20 text-[#00b9f5] font-black px-1.5 py-0.5 rounded">
-                  Sarvam Indus
+                  Sarvam AI Indus
                 </span>
               </div>
               <h3 className="font-black text-sm sm:text-base mt-0.5">Paytm Automated AI Voice Call</h3>
@@ -205,7 +255,7 @@ export default function ExpiryVoiceCallModal({
 
           {/* Sarvam AI Speech Transcript Box */}
           <div className="bg-slate-900 rounded-2xl p-4 text-white space-y-3 relative overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-700/60 pb-2.5 gap-2">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
                 <span className="text-xs font-bold text-slate-300">Live Voice Stream</span>
@@ -213,31 +263,27 @@ export default function ExpiryVoiceCallModal({
                   <span className="text-[10px] text-amber-400 animate-pulse">(Connecting...)</span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setLanguage('hi-IN')}
-                  className={`text-[10px] px-2 py-0.5 rounded font-bold transition ${
-                    language === 'hi-IN'
-                      ? 'bg-[#00b9f5] text-[#002970]'
-                      : 'bg-slate-800 text-slate-400'
-                  }`}
-                >
-                  हिन्दी
-                </button>
-                <button
-                  onClick={() => setLanguage('en-IN')}
-                  className={`text-[10px] px-2 py-0.5 rounded font-bold transition ${
-                    language === 'en-IN'
-                      ? 'bg-[#00b9f5] text-[#002970]'
-                      : 'bg-slate-800 text-slate-400'
-                  }`}
-                >
-                  English
-                </button>
+
+              {/* Vernacular Language Selector (All 7 Indian Languages) */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+                {languagesList.map((l) => (
+                  <button
+                    key={l.code}
+                    onClick={() => handleLanguageChange(l.code)}
+                    className={`text-[10px] px-2 py-0.5 rounded font-bold transition whitespace-nowrap ${
+                      language === l.code
+                        ? 'bg-[#00b9f5] text-[#002970] shadow-xs'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                    title={l.name}
+                  >
+                    {l.label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Voice Audio Wave */}
+            {/* Voice Audio Wave Visualizer */}
             {isPlaying && (
               <div className="flex items-center justify-center gap-1 py-1">
                 {[...Array(16)].map((_, i) => (
@@ -258,12 +304,12 @@ export default function ExpiryVoiceCallModal({
             </p>
 
             <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-              <span>Sarvam Bulbul Speech Engine</span>
+              <span>Sarvam Bulbul Speech Engine • {languagesList.find((l) => l.code === language)?.name}</span>
               <button
                 onClick={() => generateAndPlayVoiceAlert(language)}
                 className="text-[#00b9f5] font-bold hover:underline flex items-center gap-1"
               >
-                <Volume2 size={12} /> Replay Advisory
+                <Volume2 size={12} /> Replay
               </button>
             </div>
           </div>

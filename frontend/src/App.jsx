@@ -402,6 +402,7 @@ function App() {
                 onOpenPaymentSimulator={() => setIsPaymentSimulatorOpen(true)}
                 onOpenStrategicOverview={() => setIsStrategicOverviewOpen(true)}
                 onTriggerExpiryVoiceCall={handleTriggerExpiryVoiceCall}
+                onDeleteDevice={fetchAllData}
               />
             )}
 

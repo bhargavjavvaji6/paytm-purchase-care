@@ -1206,18 +1206,19 @@ def check_expirations():
 SUPPORTED_LANGUAGES = {
     "hi-IN": {"name": "Hindi (हिन्दी)", "speaker": "meera"},
     "en-IN": {"name": "English (India)", "speaker": "meera"},
-    "ta-IN": {"name": "Tamil (தமிழ்)", "speaker": "meera"},
     "te-IN": {"name": "Telugu (తెలుగు)", "speaker": "meera"},
+    "ta-IN": {"name": "Tamil (தமிழ்)", "speaker": "meera"},
+    "kn-IN": {"name": "Kannada (ಕನ್ನಡ)", "speaker": "meera"},
+    "ml-IN": {"name": "Malayalam (മലയാളം)", "speaker": "meera"},
     "bn-IN": {"name": "Bengali (বাংলা)", "speaker": "meera"},
     "mr-IN": {"name": "Marathi (मराठी)", "speaker": "meera"},
-    "gu-IN": {"name": "Gujarati (ગુજરાતી)", "speaker": "meera"},
-    "kn-IN": {"name": "Kannada (ಕನ್ನಡ)", "speaker": "meera"}
+    "gu-IN": {"name": "Gujarati (ગુજરાતી)", "speaker": "meera"}
 }
 
 def call_sarvam_tts(text: str, target_lang: str) -> Optional[str]:
     """Helper to call Sarvam AI TTS endpoint when enabled"""
     api_key = os.getenv("SARVAM_API_KEY")
-    enable_sarvam = os.getenv("ENABLE_SARVAM_ONLINE", "false").lower() == "true"
+    enable_sarvam = os.getenv("ENABLE_SARVAM_ONLINE", "true").lower() == "true"
     
     if not enable_sarvam or not api_key or api_key.startswith("your_"):
         return None
@@ -1237,9 +1238,9 @@ def call_sarvam_tts(text: str, target_lang: str) -> Optional[str]:
             "loudness": 1.5,
             "speech_sample_rate": 8000,
             "enable_preprocessing": True,
-            "model": "auras-tts"
+            "model": "bulbul:v1"
         }
-        resp = requests.post(url, headers=headers, json=payload, timeout=2.5)
+        resp = requests.post(url, headers=headers, json=payload, timeout=3.5)
         if resp.status_code == 200:
             return resp.json().get("audios", [None])[0]
     except Exception:
@@ -1386,21 +1387,41 @@ def trigger_voice_agent(request: VoiceAgentRequest):
 def trigger_expiry_voice_alert(req: ExpiryVoiceAlertRequest):
     """
     Specifically triggers the automated proactive voice agent when a product warranty or grocery item is expiring.
-    Example: "Your laptop warranty is expiring soon, please renew the payment."
+    Full vernacular support for Hindi, English, Telugu, Tamil, Kannada, Malayalam, and Bengali.
     """
-    is_hindi = "hi" in req.target_language
+    lang = req.target_language.lower()
     is_grocery = "groc" in req.category.lower()
 
     if is_grocery:
-        if is_hindi:
-            speech_text = f"नमस्ते Bhargav! आपके Zepto ग्रोसरी और डेयरी उत्पादों की ताजगी की अवधि समाप्त हो रही है। कृपया उत्पाद की ताजगी जांचें और समय पर उपभोग करें।"
+        if "te" in lang:
+            speech_text = f"నమస్తే భార్గవ్! మీరు Paytm Zepto ద్వారా కొనుగోలు చేసిన కిరాణా మరియు పాల ఉత్పత్తుల కాలపరిమితి {req.days_left} రోజుల్లో ముగియనుంది. దయచేసి తాజాగా ఉన్నప్పుడే వినియోగించండి."
+        elif "ta" in lang:
+            speech_text = f"வணக்கம் பார்கவ்! Paytm Zepto-வில் நீங்கள் வாங்கிய பால் மற்றும் மளிகைப் பொருட்களின் பயன்பாட்டு காலம் இன்னும் {req.days_left} நாட்களில் முடிவடைகிறது. தயவுசெய்து விரைவாக பயன்படுத்தவும்."
+        elif "kn" in lang:
+            speech_text = f"ನಮಸ್ಕಾರ ಭಾರ್ಗವ್! Paytm Zepto ಮೂಲಕ ಖರೀದಿಸಿದ ದಿನಸಿ ಮತ್ತು ಹಾಲಿನ ಉತ್ಪನ್ನಗಳ ಅವಧಿಯು ಇನ್ನು {req.days_left} ದಿನಗಳಲ್ಲಿ ಮುಕ್ತಾಯವಾಗಲಿದೆ. ತಾಜಾವಾಗಿರುವಾಗಲೇ ಬಳಸಿ."
+        elif "ml" in lang:
+            speech_text = f"നമസ്കാരം ഭാർഗവ്! Paytm Zepto വഴി വാങ്ങിയ പാൽ, പലചരക്ക് സാധനങ്ങളുടെ കാലാവധി {req.days_left} ദിവസത്തിനുള്ളിൽ അവസാനിക്കും. അവ ഫ്രഷായിരിക്കുമ്പോൾ തന്നെ ഉപയോഗിക്കുക."
+        elif "bn" in lang:
+            speech_text = f"নমস্কার ভার্গব! Paytm Zepto থেকে কেনা আপনার দুধ এবং মুদি পণ্যের মেয়াদের আর মাত্র {req.days_left} দিন বাকি। দয়া করে তাজা থাকতেই ব্যবহার করুন।"
+        elif "hi" in lang:
+            speech_text = f"नमस्ते भार्गव! आपके Zepto ग्रोसरी और डेयरी उत्पादों की ताजगी की अवधि {req.days_left} दिनों में समाप्त हो रही है। कृपया उत्पाद की ताजगी जांचें और समय पर उपभोग करें।"
         else:
             speech_text = f"Hello Bhargav! Your fresh groceries and dairy items purchased on Paytm Zepto are nearing their expiration date in {req.days_left} days. Please consume while fresh."
         renewal_amount = 0
     else:
-        # Laptop / appliance warranty expiry voice alert
-        if is_hindi:
-            speech_text = f"नमस्ते Bhargav! आपके {req.product_name} की वारंटी {req.days_left} दिनों में समाप्त हो रही है। कृपया ₹899 में Paytm Care Shield एक्सटेंडेड वारंटी रिन्यू करने के लिए भुगतान करें, ताकि भविष्य में महंगे रिपेयर से बचा जा सके।"
+        # Laptop / appliance warranty expiry voice alert across all 7 Indian languages
+        if "te" in lang:
+            speech_text = f"నమస్తే భార్గవ్! మీ {req.product_name} వారంటీ ఇంకా {req.days_left} రోజుల్లో ముగియబోతోంది. భవిష్యత్తులో ఖరీదైన రిపేర్ల నుండి రక్షణ కోసం ₹899 కే Paytm Care Shield ఎక్స్‌టెండెడ్ వారంటీని వెంటనే రెన్యూ చేయండి."
+        elif "ta" in lang:
+            speech_text = f"வணக்கம் பார்கவ்! உங்கள் {req.product_name} உற்பத்தியாளர் உத்தரவாதம் இன்னும் {req.days_left} நாட்களில் முடிகிறது. எதிர்பாராத பழுது செலவுகளைத் தவிர்க்க ₹899 செலுத்தி Paytm Care Shield உத்தரவாதத்தை இப்போதே புதுப்பிக்கவும்."
+        elif "kn" in lang:
+            speech_text = f"ನಮಸ್ಕಾರ ಭಾರ್ಗವ್! ನಿಮ್ಮ {req.product_name} ಸಾಧನದ ವಾರಂಟಿ ಇನ್ನು {req.days_left} ದಿನಗಳಲ್ಲಿ ಮುಕ್ತಾಯಗೊಳ್ಳಲಿದೆ. ದುಬಾರಿ ರಿಪೇರಿ ವೆಚ್ಚಗಳಿಂದ ರಕ್ಷಣೆ ಪಡೆಯಲು ₹899 ಪಾವತಿಸಿ Paytm Care Shield ವಾರಂಟಿ ನವೀಕರಿಸಿ."
+        elif "ml" in lang:
+            speech_text = f"നമസ്കാരം ഭാർഗവ്! നിങ്ങളുടെ {req.product_name} ഉപകരണത്തിന്റെ വാറന്റി കാലാവധി {req.days_left} ദിവസത്തിനുള്ളിൽ അവസാനിക്കുകയാണ്. ഭാവിയിലെ വലിയ റിപ്പയർ ചെಲവുകൾ ഒഴിവാക്കാൻ വെറും ₹899-ന് Paytm Care Shield വഴി വാറന്റി ഇപ്പോൾ തന്നെ പുതുക്കൂ."
+        elif "bn" in lang:
+            speech_text = f"নমস্কার ভার্গব! আপনার {req.product_name}-এর ওয়ারেন্টির মেয়াদ আর মাত্র {req.days_left} দিনে শেষ হবে। অপ্রত্যাশিত মেরামতের খরচ এড়াতে মাত্র ₹899 দিয়ে Paytm Care Shield ওয়ারেন্টি এখনই রিনিউ করুন।"
+        elif "hi" in lang:
+            speech_text = f"नमस्ते भार्गव! आपके {req.product_name} की वारंटी {req.days_left} दिनों में समाप्त हो रही है। कृपया ₹899 में Paytm Care Shield एक्सटेंडेड वारंटी रिन्यू करने के लिए भुगतान करें, ताकि भविष्य में महंगे रिपेयर से बचा जा सके।"
         else:
             speech_text = f"Hello Bhargav! Your {req.product_name} warranty is expiring in {req.days_left} days. Please renew your payment for Paytm Care Shield extended coverage to prevent high repair costs. Would you like to renew now?"
         renewal_amount = 899
