@@ -24,6 +24,7 @@ import StrategicOverviewModal from './components/StrategicOverviewModal';
 import PaymentSimulatorModal from './components/PaymentSimulatorModal';
 import ExpiryVoiceCallModal from './components/ExpiryVoiceCallModal';
 import FloatingRobotAssistant from './components/FloatingRobotAssistant';
+import CustomerCareModal from './components/CustomerCareModal';
 
 import { DataService } from './services/dataService';
 
@@ -49,6 +50,13 @@ function App() {
   const [isPaymentSimulatorOpen, setIsPaymentSimulatorOpen] = useState(false);
   const [isExpiryCallOpen, setIsExpiryCallOpen] = useState(false);
   const [expiryCallDevice, setExpiryCallDevice] = useState(null);
+  const [isCustomerCareOpen, setIsCustomerCareOpen] = useState(false);
+  const [customerCareInitialTab, setCustomerCareInitialTab] = useState('call');
+
+  const handleOpenCustomerCare = (mode = 'call') => {
+    setCustomerCareInitialTab(mode);
+    setIsCustomerCareOpen(true);
+  };
 
   const fetchAllData = useCallback(async () => {
     try {
@@ -189,6 +197,7 @@ function App() {
           ) || purchases[3] || purchases[0];
           handleTriggerExpiryVoiceCall(laptopDev);
         }}
+        onOpenCustomerCare={handleOpenCustomerCare}
         isSpeaking={isSpeaking}
         notifications={notifications}
         selectedLanguage={selectedLanguage}
@@ -463,6 +472,18 @@ function App() {
         setSelectedLanguage={setSelectedLanguage}
         setActiveTab={setActiveTab}
         onSelectPreselectedDevice={handleBookServiceForDevice}
+        onOpenCustomerCare={handleOpenCustomerCare}
+      />
+
+      <CustomerCareModal
+        isOpen={isCustomerCareOpen}
+        onClose={() => setIsCustomerCareOpen(false)}
+        initialTab={customerCareInitialTab}
+        purchases={purchases}
+        onNavigateToTab={(tab) => {
+          setActiveTab(tab);
+          setIsCustomerCareOpen(false);
+        }}
       />
 
       <DeviceDetailModal
@@ -506,6 +527,7 @@ function App() {
         onOpenPaymentSimulator={() => setIsPaymentSimulatorOpen(true)}
         onOpenExpiryCall={() => setIsExpiryCallOpen(true)}
         onNavigateToScan={() => setActiveTab('scanner')}
+        onOpenCustomerCare={handleOpenCustomerCare}
       />
     </div>
   );

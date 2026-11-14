@@ -8,7 +8,9 @@ import {
   Send,
   X,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  PhoneCall,
+  MessageSquare
 } from 'lucide-react';
 
 export default function VoiceAssistantModal({
@@ -17,7 +19,8 @@ export default function VoiceAssistantModal({
   selectedLanguage,
   setSelectedLanguage,
   setActiveTab,
-  onSelectPreselectedDevice
+  onSelectPreselectedDevice,
+  onOpenCustomerCare
 }) {
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -28,8 +31,8 @@ export default function VoiceAssistantModal({
       sender: 'assistant',
       text:
         selectedLanguage === 'hi-IN'
-          ? 'नमस्ते! मैं Paytm Purchase Care का Indus AI सहायक हूँ। आप मुझसे किसी भी उपकरण की वारंटी स्थिति, डोरस्टेप रिपेयर बुकिंग, या रीसेल वैल्यू के बारे में पूछ सकते हैं।'
-          : 'Hello! I am your Indus AI Assistant for Paytm Purchase Care Hub. Ask me about device warranty, repair booking, or resale value in Hindi or English.',
+          ? 'नमस्ते! मैं Paytm Purchase Care का Indus AI सहायक हूँ। आप मुझसे किसी भी उपकरण की वारंटी, डोरस्टेप रिपेयर, या रीसेल वैल्यू के बारे में पूछ सकते हैं। आप 24x7 हेल्पलाइन 0120-4440440 पर भी कॉल कर सकते हैं।'
+          : 'Hello! I am your Indus AI Assistant for Paytm Purchase Care Hub. Ask me about device warranty, repair booking, or connect with our 24x7 Customer Care on 0120-4440440.',
       timestamp: 'Just now'
     }
   ]);
@@ -38,10 +41,11 @@ export default function VoiceAssistantModal({
   const audioRef = useRef(null);
 
   const samplePrompts = [
+    { label: '📞 Call 0120-4440440', query: 'Connect me with Paytm customer care phone call 0120-4440440' },
+    { label: '💬 Chat with Care Specialist', query: 'I want to chat with customer care specialist' },
     { label: 'Check LG AC Warranty', query: 'मेरी LG AC की वारंटी कब खत्म होगी?' },
     { label: 'Book Repair Service', query: 'Book authorized repair for my AC' },
-    { label: 'Check S24 Resale Value', query: 'Samsung फोन की रीसेल वैल्यू क्या है?' },
-    { label: 'Active Safety Recalls', query: 'Are there any active recalls on my devices?' }
+    { label: 'Zepto Grocery Refund', query: 'How to claim refund for expired grocery items?' }
   ];
 
   const fallbackSpeechSynthesis = useCallback((text) => {
@@ -98,6 +102,37 @@ export default function VoiceAssistantModal({
     setConversation((prev) => [...prev, userMsg]);
     setInputText('');
     setIsProcessing(true);
+
+    const lower = textToSend.toLowerCase();
+    if (
+      lower.includes('0120') ||
+      lower.includes('customer care') ||
+      lower.includes('call care') ||
+      lower.includes('helpline') ||
+      lower.includes('agent') ||
+      lower.includes('chat with care') ||
+      lower.includes('talk to customer care') ||
+      lower.includes('connect call')
+    ) {
+      setTimeout(() => {
+        const careReply =
+          selectedLanguage === 'hi-IN'
+            ? 'आप Paytm 24x7 कस्टमर केयर हेल्पलाइन 0120-4440440 पर तुरंत कॉल कर सकते हैं या हमारे लाइव केयर स्पेशलिस्ट के साथ चैट कर सकते हैं।'
+            : 'You can immediately connect with Paytm 24x7 Customer Care by calling our dedicated helpline 0120-4440440 or chat directly with our care specialist.';
+
+        const assistantMsg = {
+          sender: 'assistant',
+          text: careReply,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          is_customer_care: true
+        };
+
+        setConversation((prev) => [...prev, assistantMsg]);
+        playSpeechAudio(null, careReply);
+        setIsProcessing(false);
+      }, 500);
+      return;
+    }
 
     try {
       const res = await axios.post(`${API_BASE}/api/voice-agent`, {
@@ -237,6 +272,37 @@ export default function VoiceAssistantModal({
           </div>
         </div>
 
+        {/* 24x7 Customer Care Two Options Bar (Call 0120-4440440 & Chat) */}
+        <div className="bg-gradient-to-r from-blue-50 via-sky-50 to-indigo-50 px-3.5 py-2 border-b border-blue-200/60 flex items-center justify-between text-xs gap-2">
+          <div className="flex items-center gap-1.5 font-black text-[#002970] shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[11px]">Paytm Care:</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <a
+              href="tel:01204440440"
+              className="px-2.5 py-1 bg-[#002970] hover:bg-[#061e4f] text-white text-[11px] font-black rounded-lg flex items-center gap-1 shadow-2xs transition"
+              title="Direct Toll-Free Phone Call"
+            >
+              <PhoneCall size={12} className="text-amber-400" />
+              <span>Call 0120-4440440</span>
+            </a>
+
+            <button
+              onClick={() => {
+                if (onOpenCustomerCare) onOpenCustomerCare('chat');
+                onClose();
+              }}
+              className="px-2.5 py-1 bg-white hover:bg-blue-50 border border-blue-300 text-[#002970] text-[11px] font-bold rounded-lg flex items-center gap-1 shadow-2xs transition"
+              title="Live Chat with Senior Support Specialist"
+            >
+              <MessageSquare size={12} className="text-[#00b9f5]" />
+              <span>Chat Option</span>
+            </button>
+          </div>
+        </div>
+
         {/* Audio Visualizer Wave Bar */}
         {(isListening || isPlayingAudio) && (
           <div className="bg-[#0b192e] px-4 py-2 flex items-center justify-center gap-1.5 border-b border-white/10">
@@ -285,6 +351,28 @@ export default function VoiceAssistantModal({
                     <span>Open {msg.action_tab === 'service' ? 'Service Booking' : msg.action_tab}</span>
                     <ArrowRight size={12} />
                   </button>
+                )}
+
+                {msg.is_customer_care && (
+                  <div className="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap gap-2">
+                    <a
+                      href="tel:01204440440"
+                      className="px-3 py-1.5 bg-[#002970] text-white hover:bg-[#061e4f] text-[11px] font-extrabold rounded-lg flex items-center gap-1.5 shadow-2xs transition"
+                    >
+                      <PhoneCall size={12} className="text-amber-400" />
+                      <span>Call 0120-4440440</span>
+                    </a>
+                    <button
+                      onClick={() => {
+                        if (onOpenCustomerCare) onOpenCustomerCare('chat');
+                        onClose();
+                      }}
+                      className="px-3 py-1.5 bg-white border border-blue-300 text-[#002970] hover:bg-blue-50 text-[11px] font-bold rounded-lg flex items-center gap-1.5 shadow-2xs transition"
+                    >
+                      <MessageSquare size={12} className="text-[#00b9f5]" />
+                      <span>Chat with Care Specialist</span>
+                    </button>
+                  </div>
                 )}
               </div>
               <span className="text-[9px] text-gray-400 mt-1 px-1">{msg.timestamp}</span>

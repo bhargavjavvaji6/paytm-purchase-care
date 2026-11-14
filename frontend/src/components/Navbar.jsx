@@ -17,6 +17,7 @@ export default function Navbar({
   onOpenStrategicOverview,
   onOpenPaymentSimulator,
   onOpenExpiryVoiceCall,
+  onOpenCustomerCare,
   isSpeaking,
   notifications = [],
   selectedLanguage,
@@ -94,6 +95,17 @@ export default function Navbar({
 
           {/* Right Action Icons & Controls */}
           <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* 0. 24x7 Customer Care Helpline (0120-4440440) */}
+            <button
+              onClick={() => onOpenCustomerCare && onOpenCustomerCare('call')}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl text-xs font-black text-white transition shadow-xs"
+              title="Paytm 24x7 Customer Care Helpline (0120-4440440) & Live Chat"
+            >
+              <PhoneCall size={13} className="text-amber-400" />
+              <span className="hidden lg:inline font-mono">0120-4440440</span>
+              <span className="lg:hidden text-[11px]">Care</span>
+            </button>
+
             {/* 1. Simulate Paytm Payment Button */}
             <button
               onClick={onOpenPaymentSimulator}

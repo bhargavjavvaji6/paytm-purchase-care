@@ -4,28 +4,33 @@ import {
   UploadCloud,
   PhoneCall,
   CreditCard,
-  X
+  X,
+  MessageSquare,
+  HelpCircle,
+  PhoneForwarded
 } from 'lucide-react';
 
 export default function FloatingRobotAssistant({
   onOpenVoiceAssistant,
   onOpenPaymentSimulator,
   onOpenExpiryCall,
-  onNavigateToScan
+  onNavigateToScan,
+  onOpenCustomerCare
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [speechBubbleText, setSpeechBubbleText] = useState('Hi! Tap me for Voice AI, Scanner & Care Tips');
+  const [speechBubbleText, setSpeechBubbleText] = useState('Hi! Tap me for 24x7 Care (0120-4440440) & Voice AI');
   const [isBubbleVisible, setIsBubbleVisible] = useState(true);
 
   // Rotating companion suggestions
   useEffect(() => {
     const tips = [
-      '👋 Hi Bhargav! I am your Paytm Care Hub AI Bot.',
-      '🧾 Snap any invoice to auto-detect model & warranty.',
+      '📞 24x7 Helpline: Connect Call to 0120-4440440',
+      '💬 Chat with Paytm Customer Care Specialist Live',
+      '❓ Ask a question about your appliance warranty',
+      '🧾 Snap any invoice to auto-detect model & warranty',
       '🎙️ Try Voice AI in Telugu, Tamil, Hindi & 4 more!',
       '⚡ 1 Laptop warranty expiring in 6 days. Renew now?',
-      '🥛 Zepto milk & groceries tracked for freshness!',
-      '🛡️ Need doorstep technician? Book with 1 click.'
+      '🥛 Zepto milk & groceries tracked for freshness!'
     ];
 
     let idx = 0;
@@ -78,6 +83,62 @@ export default function FloatingRobotAssistant({
           </div>
 
           <div className="space-y-1.5 pt-1">
+            {/* 1. Connect Paytm Customer Care Call */}
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                if (onOpenCustomerCare) onOpenCustomerCare('call');
+              }}
+              className="w-full text-left p-2.5 rounded-xl bg-gradient-to-r from-[#002970] to-[#0d3b8e] hover:from-[#081e4f] hover:to-[#092b6a] text-white font-bold flex items-center gap-2.5 transition-all shadow-xs group border border-white/10"
+            >
+              <div className="w-8 h-8 rounded-lg bg-amber-400 text-[#002970] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
+                <PhoneCall size={16} className="text-[#002970]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-white leading-tight">Paytm Customer Care Call</span>
+                  <span className="text-[9px] bg-emerald-400/20 text-emerald-300 font-bold px-1.5 py-0.2 rounded">24x7</span>
+                </div>
+                <div className="text-[10px] text-amber-300 font-mono font-bold mt-0.5">📞 0120-4440440 (Toll Free)</div>
+              </div>
+            </button>
+
+            {/* 2. Chat with Customer Care Option */}
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                if (onOpenCustomerCare) onOpenCustomerCare('chat');
+              }}
+              className="w-full text-left p-2 rounded-xl bg-sky-50/80 hover:bg-sky-100/90 text-[#002970] font-bold flex items-center gap-2.5 transition-all shadow-xs group border border-sky-200/60"
+            >
+              <div className="w-7 h-7 rounded-lg bg-[#00b9f5] text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <MessageSquare size={14} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-bold text-gray-900 leading-tight">Chat with Customer Care</div>
+                <div className="text-[9px] text-sky-700">Live Agent Helpdesk & Claims</div>
+              </div>
+            </button>
+
+            {/* 3. Ask a Question to Care Team */}
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                if (onOpenCustomerCare) onOpenCustomerCare('ask');
+              }}
+              className="w-full text-left p-2 rounded-xl bg-purple-50/80 hover:bg-purple-100/90 text-purple-900 font-bold flex items-center gap-2.5 transition-all shadow-xs group border border-purple-200/60"
+            >
+              <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <HelpCircle size={14} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[11px] font-bold text-gray-900 leading-tight">Ask a Question to Support</div>
+                <div className="text-[9px] text-purple-700">Warranties, Repairs, Zepto Refunds</div>
+              </div>
+            </button>
+
+            <div className="border-t border-gray-100 my-1 pt-1" />
+
             <button
               onClick={() => {
                 setIsMenuOpen(false);
@@ -102,7 +163,7 @@ export default function FloatingRobotAssistant({
               className="w-full text-left p-2 rounded-xl bg-amber-50/70 hover:bg-amber-100/70 text-amber-900 font-bold flex items-center gap-2.5 transition-all shadow-xs group"
             >
               <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <PhoneCall size={14} />
+                <PhoneForwarded size={14} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] font-bold text-gray-900 leading-tight">Laptop Expiry Voice Call</div>
